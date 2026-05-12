@@ -1,0 +1,150 @@
+{
+  "app": {
+    "title": "Marketing Dashboard",
+    "subtitle": "Ariete Capital"
+  },
+  "header": {
+    "toggleTheme": "Toggle theme",
+    "language": "Language",
+    "setup": "Setup"
+  },
+  "filters": {
+    "dateRange": "Pick a date range",
+    "from": "From",
+    "to": "To",
+    "apply": "Apply",
+    "reset": "Reset",
+    "presets": "Presets",
+    "preset": {
+      "7d": "Last 7 days",
+      "30d": "Last 30 days",
+      "90d": "Last 90 days",
+      "thisMonth": "This month",
+      "lastMonth": "Last month"
+    }
+  },
+  "tabs": {
+    "dashboard": "Dashboard",
+    "pipeline": "Pipeline"
+  },
+  "snapshot": {
+    "leads": "Leads",
+    "clientsDirect": "Clients (Direct)",
+    "clientsFromAgents": "Clients (From Agents)",
+    "clientsAll": "Clients (All)"
+  },
+  "hero": {
+    "spend": "Spend",
+    "metaLeads": "Meta leads",
+    "cpl": "CPL",
+    "cac": "CAC",
+    "targetCac": "Target",
+    "vsCacTarget": "vs CAC target",
+    "vsPrevious": "vs previous period",
+    "noPrevious": "no comparison"
+  },
+  "legend": {
+    "title": "What these metrics mean",
+    "leads": "Absolute count of every record in the Leads table. Snapshot, not filtered by date or source.",
+    "clientsDirect": "Clients whose linked `source` primary name is one of the Ariete sources (Capital, Meta ads, Website). Snapshot.",
+    "clientsFromAgents": "Clients whose linked `source` is NOT one of the Ariete sources — i.e. introduced by external agents. Snapshot.",
+    "clientsAll": "Every record in the Clients table, regardless of source. Snapshot.",
+    "spend": "Total ad spend on Meta during the selected period.",
+    "metaLeads": "Lead form submissions reported by Meta Ads in the period (any of: lead, leadgen.other, fb_pixel_lead, onsite_conversion.lead_grouped).",
+    "cpl": "Cost per Lead = Spend ÷ Meta leads in period. Lower is better, so the delta is inverted.",
+    "cac": "Customer Acquisition Cost = Spend ÷ Closed clients (Ariete) introduced in period. Lower is better. Set a target in Setup to see at-a-glance whether you are on or over target.",
+    "cohortNote": "Period KPIs (Spend, Meta leads, CPL, CAC) refer to the selected date range. Snapshot KPIs above are absolute and ignore the date range."
+  },
+  "trend": {
+    "title": "Daily spend & leads",
+    "description": "Meta Ads daily breakdown for the selected period.",
+    "spend": "Spend",
+    "leads": "Leads",
+    "noData": "No data for the selected period."
+  },
+  "calendar": {
+    "title": "Booked Calls",
+    "description": "Calls booked on Calendly in the selected period.",
+    "kpis": {
+      "total": "Total calls",
+      "booked": "Booked",
+      "attended": "Attended (show-up)",
+      "costPerBooked": "Cost / Booked",
+      "costPerAttended": "Cost / Attended"
+    }
+  },
+  "leads": {
+    "title": "Leads Pipeline",
+    "description": "Leads grouped by phase. Current snapshot, not date-filtered.",
+    "kpis": {
+      "total": "Total leads"
+    },
+    "chart": {
+      "phase": "Phase",
+      "count": "Lead count",
+      "noData": "No leads found."
+    }
+  },
+  "phases": {
+    "title": "Client Pipeline",
+    "description": "Clients grouped by phase. Current snapshot, not date-filtered.",
+    "kpis": {
+      "total": "Total clients"
+    },
+    "chart": {
+      "phase": "Phase",
+      "count": "Client count",
+      "noData": "No clients found."
+    }
+  },
+  "phasesList": {
+    "noClients": "No clients in this phase."
+  },
+  "funnel": {
+    "title": "Funnel",
+    "description": "End-to-end conversion from Meta lead to investment executed for the selected period. Airtable stages are Ariete-source filtered.",
+    "stages": {
+      "metaLeads": "Meta leads",
+      "booked": "Booked",
+      "attended": "Attended",
+      "loi": "LOI signed",
+      "onboardingFee": "Onboarding fee",
+      "investmentExecuted": "Invested"
+    }
+  },
+  "cohorts": {
+    "title": "Cohort CAC",
+    "description": "Each row is the cohort of Ariete-sourced leads + clients introduced in that month. Spend is the Meta spend in the same month. Realized CAC = month spend ÷ closed clients from the cohort.",
+    "of": "of cohort",
+    "maturationNote": "Recent cohorts will look expensive — they have not had time to mature through the sales cycle. Use the older rows to read the steady-state CAC. If a Target CAC is set in Setup, realized CAC is colored green when ≤ target, red when over.",
+    "col": {
+      "month": "Cohort month",
+      "cohort": "Cohort",
+      "loi": "→ LOI",
+      "onboarding": "→ Onboarding",
+      "invested": "→ Invested",
+      "spend": "Spend",
+      "realizedCac": "Realized CAC"
+    }
+  },
+"setup": {
+    "title": "Setup",
+    "subtitle": "Dashboard configuration. Changes apply immediately.",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "targetCac": {
+      "title": "Target CAC",
+      "description": "Reference Customer Acquisition Cost used to compare the actual CAC on the dashboard.",
+      "label": "Target CAC",
+      "placeholder": "e.g. 250",
+      "hint": "Leave empty to remove the target. CAC = Spend ÷ Closed clients (Ariete) in the selected period."
+    }
+  },
+  "errors": {
+    "fetchFailed": "Unable to load data",
+    "tryAgain": "Retry",
+    "configMissing": "Missing configuration. Check variables in .env.local."
+  },
+  "loading": "Loading…"
+}

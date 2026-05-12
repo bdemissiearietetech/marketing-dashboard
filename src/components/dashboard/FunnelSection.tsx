@@ -1,0 +1,131 @@
+import { getTranslations, getLocale } from "next-intl/server";
+import { ChevronRight } from "lucide-react";
+import { CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionError } from "./SectionError";
+import { getFunnel, type FunnelStage } from "@/server/queries/funnel";
+import { formatNumber, formatPercent } from "@/lib/format";
+import type { DateRange } from "@/lib/date-range";
+
+interface FunnelSectionProps {
+  range: DateRange;
+}
+
+export async function FunnelSection({ range }: FunnelSectionProps) {
+  const t = await getTranslations("funnel");
+  const tErr = await getTranslations("errors");
+  const locale = await getLocale();
+
+  let data;
+  try {
+    data = await getFunnel(range);
+  } catch (err) {
+    return (
+      <section className="space-y-3">
+        <CardHeader className="px-0">
+          <CardTitle className="text-lg">{t("title")}</CardTitle>
+        </CardHeader>
+        <SectionError title={tErr("fetchFailed")} message={(err as Error).message} />
+      </section>
+    );
+  }
+
+  const stagesWithRates = computeRates(data.stages);
+
+  return (
+    <section className="space-y-4">
+      <CardHeader className="px-0">
+        <CardTitle className="text-lg">{t("title")}</CardTitle>
+        <CardDescription>{t("description")}</CardDescription>
+      </CardHeader>
+
+      <div className="rounded-md border bg-card p-3 sm:p-4">
+        <div className="flex flex-col lg:flex-row lg:items-stretch gap-2">
+          {stagesWithRates.map((s, i) => (
+            <FunnelStageBlock
+              key={s.key}
+              label={t(`stages.${s.key}`)}
+              count={s.count}
+              convFromPrev={s.convFromPrev}
+              convFromTop={s.convFromTop}
+              locale={locale}
+              isFirst={i === 0}
+            />
+          ))}
+        </div>
+      </div>
+
+      {data.warnings.length > 0 && (
+        <ul className="text-xs text-muted-foreground space-y-0.5">
+          {data.warnings.map((w, i) => (
+            <li key={i}>· {w}</li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+interface StageWithRates extends FunnelStage {
+  convFromPrev: number | null;
+  convFromTop: number | null;
+}
+
+function computeRates(stages: FunnelStage[]): StageWithRates[] {
+  const top = stages[0]?.count ?? null;
+  return stages.map((s, i) => {
+    const prev = i > 0 ? stages[i - 1].count : null;
+    const convFromPrev =
+      s.count !== null && prev !== null && prev > 0 ? s.count / prev : null;
+    const convFromTop =
+      i === 0
+        ? null
+        : s.count !== null && top !== null && top > 0
+          ? s.count / top
+          : null;
+    return { ...s, convFromPrev, convFromTop };
+  });
+}
+
+interface StageProps {
+  label: string;
+  count: number | null;
+  convFromPrev: number | null;
+  convFromTop: number | null;
+  locale: string;
+  isFirst: boolean;
+}
+
+function FunnelStageBlock({
+  label,
+  count,
+  convFromPrev,
+  convFromTop,
+  locale,
+  isFirst,
+}: StageProps) {
+  return (
+    <div className="flex items-center gap-2 flex-1 min-w-0">
+      {!isFirst && (
+        <div className="flex flex-col items-center text-[10px] text-muted-foreground tabular-nums whitespace-nowrap px-1">
+          <ChevronRight className="size-3 hidden lg:block" />
+          <span>
+            {convFromPrev !== null ? formatPercent(convFromPrev, locale, { digits: 0 }) : "—"}
+          </span>
+        </div>
+      )}
+      <div className="flex-1 min-w-0 rounded-md border bg-background px-3 py-2">
+        <div className="text-[10px] uppercase tracking-wide text-muted-foreground truncate">
+          {label}
+        </div>
+        <div className="text-xl font-semibold tabular-nums">
+          {count !== null ? formatNumber(count, locale) : "—"}
+        </div>
+        {convFromTop !== null && (
+          <div className="text-[10px] text-muted-foreground tabular-nums">
+            {formatPercent(convFromTop, locale, { digits: 1 })} of top
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

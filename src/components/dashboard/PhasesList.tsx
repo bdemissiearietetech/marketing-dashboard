@@ -4,8 +4,22 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { ChevronRight } from "lucide-react";
 import { getPhaseMeta } from "@/lib/constants";
+import type { PhaseGroup } from "@/lib/constants";
 import { formatNumber } from "@/lib/format";
 import type { AirtableClient, PhaseBucket } from "@/types/airtable";
+
+// Sequential ramp by pipeline depth. pre-loi → slate, post-loi → amber, terminal → no hue.
+const GROUP_BORDER: Record<PhaseGroup, string> = {
+  "pre-loi": "border-l-2 border-slate-400/70 dark:border-slate-500/70",
+  "post-loi": "border-l-2 border-amber-500/70 dark:border-amber-400/70",
+  terminal: "border-l-2 border-transparent",
+};
+
+const GROUP_NUMBER: Record<PhaseGroup, string> = {
+  "pre-loi": "text-slate-500 dark:text-slate-400",
+  "post-loi": "text-amber-600 dark:text-amber-400",
+  terminal: "text-muted-foreground/60",
+};
 
 interface PhasesListProps {
   buckets: PhaseBucket[];
@@ -25,12 +39,13 @@ export function PhasesList({ buckets, total, locale }: PhasesListProps) {
         const meta = getPhaseMeta(b.phase);
         const pct = total > 0 ? (b.count / total) * 100 : 0;
         const num = meta?.number ?? null;
-        const isTerminal = meta?.group === "terminal" || meta === undefined;
+        const group: PhaseGroup = meta?.group ?? "terminal";
+        const isTerminal = group === "terminal";
         const hasClients = (b.clients?.length ?? 0) > 0;
         const isOpen = openPhase === b.phase;
 
         return (
-          <li key={b.phase}>
+          <li key={b.phase} className={GROUP_BORDER[group]}>
             <button
               type="button"
               onClick={() => setOpenPhase(isOpen ? null : b.phase)}
@@ -44,9 +59,7 @@ export function PhasesList({ buckets, total, locale }: PhasesListProps) {
                 } ${hasClients ? "" : "invisible"}`}
               />
               <span
-                className={`flex-shrink-0 w-9 text-center font-mono text-xs tabular-nums ${
-                  isTerminal ? "text-muted-foreground/60" : "text-muted-foreground"
-                }`}
+                className={`flex-shrink-0 w-9 text-center font-mono text-xs tabular-nums ${GROUP_NUMBER[group]}`}
               >
                 {num !== null ? String(num).padStart(2, "0") : "—"}
               </span>

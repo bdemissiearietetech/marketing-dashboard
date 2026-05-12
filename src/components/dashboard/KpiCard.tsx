@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { formatPercent } from "@/lib/format";
 
+export type KpiTone = "acquisition" | "engagement" | "revenue" | "neutral";
+
 interface KpiCardProps {
   label: string;
   value: string;
@@ -12,7 +14,25 @@ interface KpiCardProps {
   invertDelta?: boolean;
   locale?: string;
   className?: string;
+  /** Categorical color for the eyebrow label. Defaults to neutral (muted-foreground). */
+  tone?: KpiTone;
+  /** When true, draws a 2px left border in the tone color. */
+  accent?: boolean;
 }
+
+const TONE_EYEBROW: Record<KpiTone, string> = {
+  acquisition: "text-sky-600 dark:text-sky-400",
+  engagement: "text-violet-600 dark:text-violet-400",
+  revenue: "text-amber-600 dark:text-amber-400",
+  neutral: "text-muted-foreground",
+};
+
+const TONE_ACCENT: Record<KpiTone, string> = {
+  acquisition: "border-l-2 border-sky-500/60 dark:border-sky-400/60",
+  engagement: "border-l-2 border-violet-500/60 dark:border-violet-400/60",
+  revenue: "border-l-2 border-amber-500/60 dark:border-amber-400/60",
+  neutral: "",
+};
 
 export function KpiCard({
   label,
@@ -23,11 +43,24 @@ export function KpiCard({
   invertDelta,
   locale = "en",
   className,
+  tone = "neutral",
+  accent = false,
 }: KpiCardProps) {
   return (
-    <Card className={cn("flex-1 min-w-[160px]", className)}>
+    <Card
+      className={cn(
+        "flex-1 min-w-[160px]",
+        accent && tone !== "neutral" && TONE_ACCENT[tone],
+        className,
+      )}
+    >
       <CardHeader className="pb-2">
-        <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+        <CardTitle
+          className={cn(
+            "text-xs font-medium uppercase tracking-wide",
+            TONE_EYEBROW[tone],
+          )}
+        >
           {label}
         </CardTitle>
       </CardHeader>

@@ -49,6 +49,7 @@ export async function FunnelSection({ range }: FunnelSectionProps) {
               convFromTop={s.convFromTop}
               locale={locale}
               isFirst={i === 0}
+              borderClass={STAGE_BORDER[s.key]}
             />
           ))}
         </div>
@@ -69,6 +70,17 @@ interface StageWithRates extends FunnelStage {
   convFromPrev: number | null;
   convFromTop: number | null;
 }
+
+// Sequential ramp: cool (slate) at the top of funnel → warm (amber) → emerald at the bottom.
+// Encodes "how far down" so the operator parses the funnel left-to-right by hue.
+const STAGE_BORDER: Record<FunnelStage["key"], string> = {
+  metaLeads: "border-l-2 border-slate-400/70 dark:border-slate-500/70",
+  booked: "border-l-2 border-slate-500/70 dark:border-slate-400/70",
+  attended: "border-l-2 border-violet-400/70 dark:border-violet-300/70",
+  loi: "border-l-2 border-amber-400/70 dark:border-amber-300/70",
+  onboardingFee: "border-l-2 border-amber-500/80 dark:border-amber-400/80",
+  investmentExecuted: "border-l-2 border-emerald-500/80 dark:border-emerald-400/80",
+};
 
 function computeRates(stages: FunnelStage[]): StageWithRates[] {
   const top = stages[0]?.count ?? null;
@@ -93,6 +105,7 @@ interface StageProps {
   convFromTop: number | null;
   locale: string;
   isFirst: boolean;
+  borderClass: string;
 }
 
 function FunnelStageBlock({
@@ -102,6 +115,7 @@ function FunnelStageBlock({
   convFromTop,
   locale,
   isFirst,
+  borderClass,
 }: StageProps) {
   return (
     <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -113,7 +127,7 @@ function FunnelStageBlock({
           </span>
         </div>
       )}
-      <div className="flex-1 min-w-0 rounded-md border bg-background px-3 py-2">
+      <div className={`flex-1 min-w-0 rounded-md border bg-background px-3 py-2 ${borderClass}`}>
         <div className="text-[10px] uppercase tracking-wide text-muted-foreground truncate">
           {label}
         </div>

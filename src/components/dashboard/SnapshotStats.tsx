@@ -18,10 +18,30 @@ export async function SnapshotStats() {
 
   return (
     <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      <KpiCard label={t("leads")} value={formatNumber(leads.total, locale)} />
-      <KpiCard label={t("clientsDirect")} value={formatNumber(clients.direct, locale)} />
-      <KpiCard label={t("clientsFromAgents")} value={formatNumber(clients.fromAgents, locale)} />
-      <KpiCard label={t("clientsAll")} value={formatNumber(clients.total, locale)} />
+      <KpiCard
+        label={t("leads")}
+        value={formatNumber(leads.total, locale)}
+        tone="acquisition"
+        accent
+      />
+      <KpiCard
+        label={t("clientsDirect")}
+        value={formatNumber(clients.direct, locale)}
+        tone="engagement"
+        accent
+      />
+      <KpiCard
+        label={t("clientsFromAgents")}
+        value={formatNumber(clients.fromAgents, locale)}
+        tone="engagement"
+        accent
+      />
+      <KpiCard
+        label={t("clientsAll")}
+        value={formatNumber(clients.total, locale)}
+        tone="revenue"
+        accent
+      />
     </section>
   );
 }

@@ -1,36 +1,38 @@
 import createMiddleware from "next-intl/middleware";
 import { NextResponse, type NextRequest } from "next/server";
 import { routing } from "@/i18n/routing";
+import { AUTH_COOKIE, hashPassword } from "@/lib/auth";
 
 const intlMiddleware = createMiddleware(routing);
 
-const UNAUTHORIZED = new NextResponse("Authentication required", {
-  status: 401,
-  headers: { "WWW-Authenticate": 'Basic realm="Marketing Dashboard", charset="UTF-8"' },
-});
+// Default locale (en) has no prefix; /it/* is the only prefixed locale.
+const LOGIN_RE = /^\/(?:it\/)?login(?:\/|$)/;
 
-export default function middleware(request: NextRequest) {
-  const user = process.env.BASIC_AUTH_USER;
-  const pass = process.env.BASIC_AUTH_PASSWORD;
+function detectLocale(pathname: string): "it" | "en" {
+  return pathname === "/it" || pathname.startsWith("/it/") ? "it" : "en";
+}
 
-  if (user && pass) {
-    const header = request.headers.get("authorization");
-    if (!header?.startsWith("Basic ")) return UNAUTHORIZED.clone();
+export default async function middleware(request: NextRequest) {
+  const password = process.env.DASHBOARD_PASSWORD;
 
-    let decoded: string;
-    try {
-      decoded = atob(header.slice(6));
-    } catch {
-      return UNAUTHORIZED.clone();
-    }
+  // Gate is opt-in: leave DASHBOARD_PASSWORD empty on localhost to skip it.
+  if (!password) return intlMiddleware(request);
 
-    const sep = decoded.indexOf(":");
-    const u = sep === -1 ? decoded : decoded.slice(0, sep);
-    const p = sep === -1 ? "" : decoded.slice(sep + 1);
-    if (u !== user || p !== pass) return UNAUTHORIZED.clone();
+  const { pathname } = request.nextUrl;
+  if (LOGIN_RE.test(pathname)) return intlMiddleware(request);
+
+  const cookie = request.cookies.get(AUTH_COOKIE)?.value;
+  const expected = await hashPassword(password);
+  if (cookie === expected) return intlMiddleware(request);
+
+  const locale = detectLocale(pathname);
+  const url = request.nextUrl.clone();
+  url.pathname = locale === "it" ? "/it/login" : "/login";
+  url.search = "";
+  if (pathname !== "/" && pathname !== "/it") {
+    url.searchParams.set("from", pathname + request.nextUrl.search);
   }
-
-  return intlMiddleware(request);
+  return NextResponse.redirect(url);
 }
 
 export const config = {

@@ -72,7 +72,7 @@ export function TrendChart({ points, spendLabel, leadsLabel, currency, locale }:
             type="monotone"
             dataKey="spend"
             name={spendLabel}
-            stroke="var(--primary)"
+            stroke="var(--chart-1)"
             strokeWidth={2}
             dot={false}
           />
@@ -81,7 +81,7 @@ export function TrendChart({ points, spendLabel, leadsLabel, currency, locale }:
             type="monotone"
             dataKey="leads"
             name={leadsLabel}
-            stroke="var(--chart-2, #10b981)"
+            stroke="var(--chart-2)"
             strokeWidth={2}
             dot={false}
           />

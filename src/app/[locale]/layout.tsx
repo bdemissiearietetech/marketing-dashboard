@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import { notFound } from "next/navigation";
@@ -9,8 +9,11 @@ import "../globals.css";
 import { routing } from "@/i18n/routing";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { Header } from "@/components/layout/Header";
+import { FeedbackButton } from "@/components/feedback/FeedbackButton";
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
+// Inter — variable font, optimised for screen UI copy. Bound to `--font-sans` so the
+// Tailwind `font-sans` utility picks it up via the @theme inline mapping in globals.css.
+const inter = Inter({ variable: "--font-sans", subsets: ["latin"], display: "swap" });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
@@ -35,7 +38,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
     <html
       lang={locale}
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
@@ -43,6 +46,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
             <NuqsAdapter>
               <Header />
               <main className="flex-1">{children}</main>
+              <FeedbackButton />
             </NuqsAdapter>
           </NextIntlClientProvider>
         </ThemeProvider>

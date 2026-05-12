@@ -7,7 +7,6 @@ import { DateRangePicker } from "@/components/dashboard/DateRangePicker";
 import { HeroKpis } from "@/components/dashboard/HeroKpis";
 import { SnapshotStats } from "@/components/dashboard/SnapshotStats";
 import { FunnelSection } from "@/components/dashboard/FunnelSection";
-import { CohortSection } from "@/components/dashboard/CohortSection";
 import { TrendSection } from "@/components/dashboard/TrendSection";
 import { MetricsLegend } from "@/components/dashboard/MetricsLegend";
 import { BookedCallsSection } from "@/components/dashboard/BookedCallsSection";
@@ -55,10 +54,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
           <Suspense fallback={<SectionSkeleton />}>
             <TrendSection range={range} />
-          </Suspense>
-
-          <Suspense fallback={<SectionSkeleton />}>
-            <CohortSection />
           </Suspense>
 
           <MetricsLegend />

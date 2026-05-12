@@ -42,15 +42,25 @@ export async function BookedCallsSection({ range }: BookedCallsSectionProps) {
       </CardHeader>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KpiCard label={t("kpis.booked")} value={formatNumber(calendar.booked, locale)} />
-        <KpiCard label={t("kpis.attended")} value={formatNumber(calendar.attended, locale)} />
+        <KpiCard
+          label={t("kpis.booked")}
+          value={formatNumber(calendar.booked, locale)}
+          tone="engagement"
+        />
+        <KpiCard
+          label={t("kpis.attended")}
+          value={formatNumber(calendar.attended, locale)}
+          tone="engagement"
+        />
         <KpiCard
           label={t("kpis.costPerBooked")}
           value={costPerBooked !== null ? formatMoney(costPerBooked, meta.currency, locale) : "—"}
+          tone="engagement"
         />
         <KpiCard
           label={t("kpis.costPerAttended")}
           value={costPerAttended !== null ? formatMoney(costPerAttended, meta.currency, locale) : "—"}
+          tone="engagement"
         />
       </div>
     </section>

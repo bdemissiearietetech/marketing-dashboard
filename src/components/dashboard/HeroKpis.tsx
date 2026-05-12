@@ -66,6 +66,7 @@ export async function HeroKpis({ range }: HeroKpisProps) {
         delta={deltas.spend}
         deltaLabel={deltaLabel}
         locale={locale}
+        tone="acquisition"
       />
       <KpiCard
         label={t("metaLeads")}
@@ -73,6 +74,7 @@ export async function HeroKpis({ range }: HeroKpisProps) {
         delta={deltas.metaLeads}
         deltaLabel={deltaLabel}
         locale={locale}
+        tone="acquisition"
       />
       <KpiCard
         label={t("cpl")}
@@ -81,6 +83,7 @@ export async function HeroKpis({ range }: HeroKpisProps) {
         deltaLabel={deltaLabel}
         invertDelta
         locale={locale}
+        tone="acquisition"
       />
       <KpiCard
         label={t("cac")}
@@ -90,6 +93,7 @@ export async function HeroKpis({ range }: HeroKpisProps) {
         invertDelta
         hint={cacHint ?? undefined}
         locale={locale}
+        tone="revenue"
       />
     </section>
   );

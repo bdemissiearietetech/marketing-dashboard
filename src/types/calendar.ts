@@ -1,9 +1,12 @@
 export interface CalendarResult {
-  /** Total booked events in the range. Alias of `booked`, kept for back-compat with older callers. */
-  total: number;
-  /** Active (non-canceled) events with start_time in the range. */
+  /** All active (non-canceled) events with start_time in the range. */
   booked: number;
-  /** Past events (start_time < now) whose invitees were NOT all marked as no-show. */
+  /** Subset of `booked` whose start_time is already in the past. Use this as the
+   *  denominator when comparing against `attended` (future events can't be attended yet). */
+  pastBooked: number;
+  /** Past events that were attended — at least one invitee not flagged no-show. */
   attended: number;
+  /** Past events whose attendance could not be determined (invitees endpoint failed). */
+  attendanceUnknown: number;
   range: { from: string; to: string };
 }

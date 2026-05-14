@@ -32,7 +32,12 @@ export async function BookedCallsSection({ range }: BookedCallsSectionProps) {
   }
 
   const costPerBooked = calendar.booked > 0 ? meta.totalSpend / calendar.booked : null;
-  const costPerAttended = calendar.attended > 0 ? meta.totalSpend / calendar.attended : null;
+  const upcoming = calendar.booked - calendar.pastBooked;
+
+  const bookedHint =
+    upcoming > 0
+      ? t("hints.upcoming", { count: upcoming })
+      : null;
 
   return (
     <section className="space-y-4">
@@ -45,11 +50,12 @@ export async function BookedCallsSection({ range }: BookedCallsSectionProps) {
         <KpiCard
           label={t("kpis.booked")}
           value={formatNumber(calendar.booked, locale)}
+          hint={bookedHint ?? undefined}
           tone="engagement"
         />
         <KpiCard
           label={t("kpis.attended")}
-          value={formatNumber(calendar.attended, locale)}
+          value="—"
           tone="engagement"
         />
         <KpiCard
@@ -59,10 +65,11 @@ export async function BookedCallsSection({ range }: BookedCallsSectionProps) {
         />
         <KpiCard
           label={t("kpis.costPerAttended")}
-          value={costPerAttended !== null ? formatMoney(costPerAttended, meta.currency, locale) : "—"}
+          value="—"
           tone="engagement"
         />
       </div>
+
     </section>
   );
 }

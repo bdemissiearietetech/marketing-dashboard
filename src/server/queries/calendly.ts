@@ -2,7 +2,7 @@ import "server-only";
 import { env } from "@/lib/env";
 import { logger } from "@/lib/logger";
 import { getCached } from "@/lib/cache";
-import { CACHE_TTL } from "@/lib/constants";
+import { CACHE_TTL, CALENDLY_TRACKED_EVENT_TYPE_URIS } from "@/lib/constants";
 import type { CalendarResult } from "@/types/calendar";
 import type { DateRange } from "@/lib/date-range";
 
@@ -13,7 +13,10 @@ interface CalendlyEvent {
   uri: string;
   status: string;
   start_time: string;
+  event_type: string;
 }
+
+const TRACKED_EVENT_TYPES = new Set<string>(CALENDLY_TRACKED_EVENT_TYPE_URIS);
 
 interface CalendlyEventsPage {
   collection: CalendlyEvent[];
@@ -30,8 +33,15 @@ interface CalendlyInviteesPage {
   pagination: { next_page: string | null };
 }
 
-async function fetchInviteesAttended(eventUri: string): Promise<boolean> {
-  // event URI ends with /scheduled_events/{uuid}. The invitees endpoint sits under it.
+/**
+ * Determine attendance for a past Calendly event.
+ *
+ *   true  → at least one active invitee was NOT flagged no-show (attended)
+ *   false → all active invitees were flagged no-show, or there were none
+ *   null  → could not determine (API error / network) — caller surfaces this
+ *           rather than guessing, so silent failures don't inflate "attended".
+ */
+async function fetchInviteesAttended(eventUri: string): Promise<boolean | null> {
   const url = `${eventUri}/invitees?status=active&count=100`;
   try {
     const res = await fetch(url, {
@@ -39,16 +49,15 @@ async function fetchInviteesAttended(eventUri: string): Promise<boolean> {
       cache: "no-store",
     });
     if (!res.ok) {
-      logger.warn({ status: res.status, eventUri }, "Calendly invitees fetch failed, counting as attended");
-      return true;
+      logger.warn({ status: res.status, eventUri }, "Calendly invitees fetch failed");
+      return null;
     }
     const data = (await res.json()) as CalendlyInviteesPage;
-    if (data.collection.length === 0) return true;
-    // If every invitee was marked no_show, the event was not attended.
+    if (data.collection.length === 0) return false;
     return data.collection.some((i) => i.no_show === null);
   } catch (err) {
-    logger.warn({ err, eventUri }, "Calendly invitees fetch threw, counting as attended");
-    return true;
+    logger.warn({ err, eventUri }, "Calendly invitees fetch threw");
+    return null;
   }
 }
 
@@ -99,32 +108,42 @@ async function fetchEvents(range: DateRange): Promise<CalendarResult> {
     }
 
     const data = (await res.json()) as CalendlyEventsPage;
-    events.push(...data.collection);
+    // Drop event types we don't track (internal meetings, deprecated booking pages, etc.)
+    // before doing any downstream work — including the per-event invitees lookup.
+    for (const ev of data.collection) {
+      if (TRACKED_EVENT_TYPES.has(ev.event_type)) events.push(ev);
+    }
     nextUrl = data.pagination?.next_page ?? null;
     pageCount += 1;
   }
 
-  const booked = events.length;
   const now = Date.now();
   const pastEvents = events.filter((e) => {
     const t = Date.parse(e.start_time);
     return Number.isFinite(t) && t < now;
   });
 
-  const attendedFlags = await mapWithConcurrency(pastEvents, INVITEE_CONCURRENCY, (e) =>
+  const flags = await mapWithConcurrency(pastEvents, INVITEE_CONCURRENCY, (e) =>
     fetchInviteesAttended(e.uri),
   );
-  const attended = attendedFlags.filter(Boolean).length;
+
+  const booked = events.length;
+  const pastBooked = pastEvents.length;
+  const attended = flags.filter((f) => f === true).length;
+  const attendanceUnknown = flags.filter((f) => f === null).length;
 
   logger.debug(
-    { booked, attended, pastCount: pastEvents.length, range, pageCount },
+    { booked, pastBooked, attended, attendanceUnknown, range, pageCount },
     "fetched calendly events",
   );
 
-  return { total: booked, booked, attended, range };
+  return { booked, pastBooked, attended, attendanceUnknown, range };
 }
 
 export async function getBookedCalls(range: DateRange): Promise<CalendarResult> {
-  const key = `calendly:${env.CALENDLY_USER_URI}:${range.from}:${range.to}:v2`;
+  // Cache key includes a digest of the tracked event types so changing the
+  // allow-list (constants.ts) invalidates existing payloads.
+  const typesDigest = CALENDLY_TRACKED_EVENT_TYPE_URIS.join(",").slice(-12);
+  const key = `calendly:${env.CALENDLY_USER_URI}:${range.from}:${range.to}:types:${typesDigest}`;
   return getCached(key, CACHE_TTL.calendly, () => fetchEvents(range));
 }

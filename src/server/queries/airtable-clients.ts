@@ -7,6 +7,7 @@ import {
   CACHE_TTL,
   CLOSED_PHASES,
   INVESTMENT_EXECUTED_PHASE,
+  NO_SHOW_PHASE,
   ONBOARDING_FEE_PAID_PHASES,
   PHASE_ORDER,
 } from "@/lib/constants";
@@ -32,6 +33,7 @@ interface AirtableListResponse {
 
 const PHASE_FIELD = "phase";
 const DATE_FIELD = "introduction_date";
+const MEETING_DATE_FIELD = "meeting_date";
 const LEADS_SOURCE_FIELD = "introduction_source";
 const CLIENTS_SOURCE_FIELD = "source";
 const UNKNOWN = "Unknown";
@@ -96,6 +98,14 @@ function sortBuckets(buckets: PhaseBucket[]): PhaseBucket[] {
 
 function rangeFormula(range: DateRange): string {
   return `AND(DATESTR({${DATE_FIELD}}) >= '${range.from}', DATESTR({${DATE_FIELD}}) <= '${range.to}')`;
+}
+
+// For the Leads table: "No show - re-engaging the lead" records are dated by meeting_date,
+// all other phases by introduction_date.
+function rangeFormulaLeads(range: DateRange): string {
+  const regular = `AND({${PHASE_FIELD}} != "${NO_SHOW_PHASE}", DATESTR({${DATE_FIELD}}) >= '${range.from}', DATESTR({${DATE_FIELD}}) <= '${range.to}')`;
+  const noShow = `AND({${PHASE_FIELD}} = "${NO_SHOW_PHASE}", DATESTR({${MEETING_DATE_FIELD}}) >= '${range.from}', DATESTR({${MEETING_DATE_FIELD}}) <= '${range.to}')`;
+  return `OR(${regular}, ${noShow})`;
 }
 
 function arieteSourceFormula(sourceField: string): string {
@@ -194,9 +204,8 @@ export async function getLeadsByPhase(): Promise<ClientPhasesResult> {
 
 // Dashboard-tab summary: counts in period, filtered to Ariete-owned sources only.
 async function fetchArieteSummary(range: DateRange): Promise<ArietePeriodSummary> {
-  const dateFilter = rangeFormula(range);
-  const leadsFilter = combineFormulas(dateFilter, arieteSourceFormula(LEADS_SOURCE_FIELD));
-  const clientsFilter = combineFormulas(dateFilter, arieteSourceFormula(CLIENTS_SOURCE_FIELD));
+  const leadsFilter = combineFormulas(rangeFormulaLeads(range), arieteSourceFormula(LEADS_SOURCE_FIELD));
+  const clientsFilter = combineFormulas(rangeFormula(range), arieteSourceFormula(CLIENTS_SOURCE_FIELD));
   const [leads, clients] = await Promise.all([
     fetchByPhase(env.AIRTABLE_LEADS_TABLE, leadsFilter),
     fetchByPhase(env.AIRTABLE_CLIENTS_TABLE, clientsFilter),
@@ -288,9 +297,8 @@ export interface ArieteFunnelStages {
 }
 
 async function fetchArieteFunnelStages(range: DateRange): Promise<ArieteFunnelStages> {
-  const dateFilter = rangeFormula(range);
-  const leadsFilter = combineFormulas(dateFilter, arieteSourceFormula(LEADS_SOURCE_FIELD));
-  const clientsFilter = combineFormulas(dateFilter, arieteSourceFormula(CLIENTS_SOURCE_FIELD));
+  const leadsFilter = combineFormulas(rangeFormulaLeads(range), arieteSourceFormula(LEADS_SOURCE_FIELD));
+  const clientsFilter = combineFormulas(rangeFormula(range), arieteSourceFormula(CLIENTS_SOURCE_FIELD));
   const [leads, clients] = await Promise.all([
     fetchByPhase(env.AIRTABLE_LEADS_TABLE, leadsFilter),
     fetchByPhase(env.AIRTABLE_CLIENTS_TABLE, clientsFilter),
@@ -314,5 +322,17 @@ async function fetchArieteFunnelStages(range: DateRange): Promise<ArieteFunnelSt
 export async function getArieteFunnelStages(range: DateRange): Promise<ArieteFunnelStages> {
   const key = `airtable:ariete-funnel:${range.from}:${range.to}`;
   return getCached(key, CACHE_TTL.airtable, () => fetchArieteFunnelStages(range));
+}
+
+export async function getNoShowCount(range: DateRange): Promise<number> {
+  const key = `airtable:no-show-count:${range.from}:${range.to}`;
+  return getCached(key, CACHE_TTL.airtable, async () => {
+    const formula = combineFormulas(
+      `AND({${PHASE_FIELD}} = "${NO_SHOW_PHASE}", DATESTR({${MEETING_DATE_FIELD}}) >= '${range.from}', DATESTR({${MEETING_DATE_FIELD}}) <= '${range.to}')`,
+      arieteSourceFormula(LEADS_SOURCE_FIELD),
+    );
+    const result = await fetchByPhase(env.AIRTABLE_LEADS_TABLE, formula);
+    return result.total;
+  });
 }
 

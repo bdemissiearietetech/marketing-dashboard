@@ -71,6 +71,15 @@
       "attended": "Attended (show-up)",
       "costPerBooked": "Cost / Booked",
       "costPerAttended": "Cost / Attended"
+    },
+    "hints": {
+      "upcoming": "{count, plural, one {# upcoming} other {# upcoming}}",
+      "attendedOfPast": "of {past} already past · show-up {rate}",
+      "ofPast": "of {past} already past",
+      "noPastYet": "no past calls yet"
+    },
+    "warnings": {
+      "unknown": "{count, plural, one {Attendance could not be determined for # call (invitees lookup failed).} other {Attendance could not be determined for # calls (invitees lookup failed).}}"
     }
   },
   "leads": {

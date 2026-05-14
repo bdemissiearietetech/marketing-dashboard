@@ -16,6 +16,7 @@ export const PHASES: ReadonlyArray<PhaseMeta> = [
   { name: "Set Meeting", number: 5, group: "pre-loi" },
   { name: "Meeting set", number: 6, group: "pre-loi" },
   { name: "Meeting held waiting for feedback", number: 7, group: "pre-loi" },
+  { name: "No show - re-engaging the lead", number: null, group: "pre-loi" },
   { name: "Converted - Prepare LOI", number: 8, group: "pre-loi" },
   { name: "LOI Sent - Waiting for signature", number: 9, group: "pre-loi" },
   { name: "LOI Signed", number: 10, group: "pre-loi" },
@@ -67,9 +68,20 @@ export const ONBOARDING_FEE_PAID_PHASES: ReadonlyArray<string> = [
 ];
 
 export const INVESTMENT_EXECUTED_PHASE = "Investment executed";
+export const NO_SHOW_PHASE = "No show - re-engaging the lead";
 
 export const CACHE_TTL = {
   metaAds: 600,
   calendly: 600,
   airtable: 300,
 } as const;
+
+// Only count scheduled_events whose `event_type` URI matches one of these.
+// Strategy / Strategic Consultancy / Investor Visa pages we drive paid traffic to.
+// Add/remove entries as the marketing booking pages evolve.
+export const CALENDLY_TRACKED_EVENT_TYPE_URIS: ReadonlyArray<string> = [
+  "https://api.calendly.com/event_types/de36bf32-d81a-4643-a334-59589182b4b5", // /d/cydy-bbz-b22 Golden Visa Strategy Session
+  "https://api.calendly.com/event_types/5b0aa55b-982a-436f-8e32-812880b40247", // /d/ctnk-xm8-yfn Strategic Consultancy
+  "https://api.calendly.com/event_types/33e90038-fcb8-466d-b989-468d5a10e2b8", // /d/ctpb-dph-667 Golden Visa Strategy Session
+  "https://api.calendly.com/event_types/6da7ecd6-e4bb-450d-92bd-997fd8bf23a6", // /d/ctr3-y7t-shc Investor Visa Strategy Session
+];

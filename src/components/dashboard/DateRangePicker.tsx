@@ -132,6 +132,7 @@ export function DateRangePicker() {
               selected={selected}
               defaultMonth={fromDate ?? new Date()}
               numberOfMonths={2}
+              showOutsideDays={false}
               disabled={{ after: today }}
               onSelect={(r) => {
                 if (r?.from && r?.to) {

@@ -9,7 +9,7 @@ export const env = createEnv({
 
     // Calendly disabled until token is available — keep optional so the app boots.
     CALENDLY_API_TOKEN: z.string().min(1).optional(),
-    CALENDLY_USER_URI: z.string().url().optional(),
+    CALENDLY_ORGANIZATION_URI: z.string().url().optional(),
 
     AIRTABLE_API_KEY: z.string().min(1),
     AIRTABLE_BASE_ID: z.string().min(1),
@@ -34,7 +34,7 @@ export const env = createEnv({
     META_AD_ACCOUNT_ID: process.env.META_AD_ACCOUNT_ID,
     META_API_VERSION: process.env.META_API_VERSION,
     CALENDLY_API_TOKEN: process.env.CALENDLY_API_TOKEN,
-    CALENDLY_USER_URI: process.env.CALENDLY_USER_URI,
+    CALENDLY_ORGANIZATION_URI: process.env.CALENDLY_ORGANIZATION_URI,
     AIRTABLE_API_KEY: process.env.AIRTABLE_API_KEY,
     AIRTABLE_BASE_ID: process.env.AIRTABLE_BASE_ID,
     AIRTABLE_CLIENTS_TABLE: process.env.AIRTABLE_CLIENTS_TABLE,

@@ -47,7 +47,7 @@ src/
 │   └── ui/                    # shadcn primitives
 ├── server/queries/            # data-fetching server modules (each wrapped with getCached)
 │   ├── meta-ads.ts            # Meta Marketing API → spend + leads + CPL
-│   ├── calendly.ts            # Calendly REST → /scheduled_events count + attendance
+│   ├── calendly.ts            # Calendly REST → org-scoped /scheduled_events count + attendance
 │   ├── airtable-clients.ts    # Airtable REST → aggregates by phase
 │   ├── funnel.ts              # cross-source funnel computation
 │   └── settings.ts            # reads TARGET_CAC from env
@@ -81,8 +81,8 @@ Fill in the required secrets:
 |---|---|
 | `META_ACCESS_TOKEN` | Business Manager → System Users → Generate token (long-lived). Required permissions: `ads_read`. |
 | `META_AD_ACCOUNT_ID` | Ads Manager URL: `act_XXXXXXX` — paste only the digits, **without** the `act_` prefix. |
-| `CALENDLY_API_TOKEN` | Calendly → Account → Integrations → API & Webhooks → "Generate New Token". The PAT inherits the generating user's permissions, so generate it from the account whose `scheduled_events` you want to count. |
-| `CALENDLY_USER_URI` | After setting `CALENDLY_API_TOKEN`, run `curl -H "Authorization: Bearer $CALENDLY_API_TOKEN" https://api.calendly.com/users/me` and copy `resource.uri` (format `https://api.calendly.com/users/<uuid>`). |
+| `CALENDLY_API_TOKEN` | Calendly → Account → Integrations → API & Webhooks → "Generate New Token". `/scheduled_events?organization=…` works with any org member's PAT and returns events from every user in the org. Event-type names are resolved per-URI via `GET /event_types/{uuid}` (no admin role required). |
+| `CALENDLY_ORGANIZATION_URI` | After setting `CALENDLY_API_TOKEN`, run `curl -H "Authorization: Bearer $CALENDLY_API_TOKEN" https://api.calendly.com/users/me` and copy `resource.current_organization` (format `https://api.calendly.com/organizations/<uuid>`). Counts events booked by ANY user in the org. |
 | `AIRTABLE_API_KEY` | airtable.com → Account → Personal access token with `data.records:read` scope on the Ariete Capital base. |
 | `AIRTABLE_BASE_ID` | Pre-filled: `appuQ0UBJRXSTztOH` (Ariete Capital Client Management). |
 | `AIRTABLE_CLIENTS_TABLE` / `AIRTABLE_LEADS_TABLE` | Pre-filled: `Clients` / `Leads`. |
@@ -101,7 +101,7 @@ Opens on `http://localhost:3000`.
 ## How to extend
 
 - **Add a new metric to Meta Ads**: extend `MetaCampaignRow` in `src/types/meta-ads.ts`, add the field to the `fields=` query param, parse it in `meta-ads.ts`, render it in the relevant dashboard section.
-- **Show details for booked calls**: Calendly returns only the count today. To list events with title/start/attendee, extend `CalendarResult` and rebuild the table in `BookedCallsSection`. Invitee names require a second call to `/scheduled_events/{uuid}/invitees` per event — N+1, mind the rate limit (10 req/s).
+- **Show details for booked calls**: Calendly returns only the count today. To list events with title/start/attendee, extend `CalendarResult` and rebuild the table in `BookedCallsSection`. Invitee names require a second call to `/scheduled_events/{uuid}/invitees` per event — N+1, mind the rate limit (10 req/s). Note: the query is org-scoped, so events from every user in the org are included; the exclusion list lives in `CALENDLY_IGNORED_EVENT_TYPE_NAMES` (`lib/constants.ts`) and event-type names are resolved per-URI via `GET /event_types/{uuid}` (works for both user-owned and team event types, regardless of PAT role).
 - **Add a new locale string**: add to both `messages/it.json` and `messages/en.json`. The `useTranslations()` hook will pick it up.
 - **Invalidate cache manually**: call `revalidateTag(key)` from `next/cache`, where `key` matches the cache key passed to `getCached`. Cache TTLs are in `lib/constants.ts`.
 

@@ -2,12 +2,13 @@ import "server-only";
 import { env } from "@/lib/env";
 import { logger } from "@/lib/logger";
 import { getCached } from "@/lib/cache";
-import { CACHE_TTL, CALENDLY_TRACKED_EVENT_TYPE_URIS } from "@/lib/constants";
+import { CACHE_TTL, CALENDLY_IGNORED_EVENT_TYPE_NAMES } from "@/lib/constants";
 import type { CalendarResult } from "@/types/calendar";
 import type { DateRange } from "@/lib/date-range";
 
 const CALENDLY_API = "https://api.calendly.com";
 const INVITEE_CONCURRENCY = 5;
+const EVENT_TYPE_CONCURRENCY = 5;
 
 interface CalendlyEvent {
   uri: string;
@@ -15,8 +16,6 @@ interface CalendlyEvent {
   start_time: string;
   event_type: string;
 }
-
-const TRACKED_EVENT_TYPES = new Set<string>(CALENDLY_TRACKED_EVENT_TYPE_URIS);
 
 interface CalendlyEventsPage {
   collection: CalendlyEvent[];
@@ -32,6 +31,10 @@ interface CalendlyInviteesPage {
   collection: CalendlyInvitee[];
   pagination: { next_page: string | null };
 }
+
+const IGNORED_NAMES_LC = new Set(
+  CALENDLY_IGNORED_EVENT_TYPE_NAMES.map((n) => n.trim().toLowerCase()),
+);
 
 /**
  * Determine attendance for a past Calendly event.
@@ -79,20 +82,49 @@ async function mapWithConcurrency<T, U>(
   return results;
 }
 
+// Direct GET /event_types/{uuid} works for any PAT, including for team event types
+// that /event_types?organization=… hides when the PAT isn't an org admin/owner.
+async function fetchEventTypeName(uri: string): Promise<string | null> {
+  try {
+    const res = await fetch(uri, {
+      headers: { Authorization: `Bearer ${env.CALENDLY_API_TOKEN}` },
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      logger.warn({ status: res.status, uri }, "Calendly event-type fetch failed");
+      return null;
+    }
+    const data = (await res.json()) as { resource?: { name?: string } };
+    return data.resource?.name ?? null;
+  } catch (err) {
+    logger.warn({ err, uri }, "Calendly event-type fetch threw");
+    return null;
+  }
+}
+
+async function resolveEventTypeName(uri: string): Promise<string | null> {
+  // Names are effectively static; cache per-URI for the full TTL.
+  return getCached(`calendly:event-type-name:${uri}`, CACHE_TTL.calendlyEventTypes, () =>
+    fetchEventTypeName(uri),
+  );
+}
+
 async function fetchEvents(range: DateRange): Promise<CalendarResult> {
-  if (!env.CALENDLY_API_TOKEN || !env.CALENDLY_USER_URI) {
-    throw new Error("Calendly is not configured: set CALENDLY_API_TOKEN and CALENDLY_USER_URI in .env.local");
+  if (!env.CALENDLY_API_TOKEN || !env.CALENDLY_ORGANIZATION_URI) {
+    throw new Error(
+      "Calendly is not configured: set CALENDLY_API_TOKEN and CALENDLY_ORGANIZATION_URI in .env.local",
+    );
   }
 
   const initial = new URL(`${CALENDLY_API}/scheduled_events`);
-  initial.searchParams.set("user", env.CALENDLY_USER_URI);
+  initial.searchParams.set("organization", env.CALENDLY_ORGANIZATION_URI);
   initial.searchParams.set("min_start_time", `${range.from}T00:00:00Z`);
   initial.searchParams.set("max_start_time", `${range.to}T23:59:59Z`);
   initial.searchParams.set("status", "active");
   initial.searchParams.set("count", "100");
   initial.searchParams.set("sort", "start_time:asc");
 
-  const events: CalendlyEvent[] = [];
+  const allEvents: CalendlyEvent[] = [];
   let nextUrl: string | null = initial.toString();
   let pageCount = 0;
 
@@ -108,14 +140,28 @@ async function fetchEvents(range: DateRange): Promise<CalendarResult> {
     }
 
     const data = (await res.json()) as CalendlyEventsPage;
-    // Drop event types we don't track (internal meetings, deprecated booking pages, etc.)
-    // before doing any downstream work — including the per-event invitees lookup.
-    for (const ev of data.collection) {
-      if (TRACKED_EVENT_TYPES.has(ev.event_type)) events.push(ev);
-    }
+    allEvents.push(...data.collection);
     nextUrl = data.pagination?.next_page ?? null;
     pageCount += 1;
   }
+
+  const uniqueTypeUris = Array.from(new Set(allEvents.map((e) => e.event_type)));
+  const resolvedNames = await mapWithConcurrency(
+    uniqueTypeUris,
+    EVENT_TYPE_CONCURRENCY,
+    resolveEventTypeName,
+  );
+  const nameByUri = new Map<string, string | null>();
+  uniqueTypeUris.forEach((uri, i) => nameByUri.set(uri, resolvedNames[i]));
+
+  // Exclude internal/partner pages; an unresolved name (null) is treated as
+  // unknown-but-included rather than dropped — better to over-count than to
+  // silently swallow real bookings when the per-type lookup fails.
+  const events = allEvents.filter((e) => {
+    const name = nameByUri.get(e.event_type);
+    if (!name) return true;
+    return !IGNORED_NAMES_LC.has(name.trim().toLowerCase());
+  });
 
   const now = Date.now();
   const pastEvents = events.filter((e) => {
@@ -133,7 +179,16 @@ async function fetchEvents(range: DateRange): Promise<CalendarResult> {
   const attendanceUnknown = flags.filter((f) => f === null).length;
 
   logger.debug(
-    { booked, pastBooked, attended, attendanceUnknown, range, pageCount },
+    {
+      booked,
+      pastBooked,
+      attended,
+      attendanceUnknown,
+      range,
+      pageCount,
+      uniqueTypes: uniqueTypeUris.length,
+      droppedByIgnore: allEvents.length - events.length,
+    },
     "fetched calendly events",
   );
 
@@ -141,9 +196,9 @@ async function fetchEvents(range: DateRange): Promise<CalendarResult> {
 }
 
 export async function getBookedCalls(range: DateRange): Promise<CalendarResult> {
-  // Cache key includes a digest of the tracked event types so changing the
-  // allow-list (constants.ts) invalidates existing payloads.
-  const typesDigest = CALENDLY_TRACKED_EVENT_TYPE_URIS.join(",").slice(-12);
-  const key = `calendly:${env.CALENDLY_USER_URI}:${range.from}:${range.to}:types:${typesDigest}`;
+  // Cache key includes a digest of the ignored event-type names so changing the
+  // exclusion list (constants.ts) invalidates existing payloads.
+  const namesDigest = CALENDLY_IGNORED_EVENT_TYPE_NAMES.join(",").slice(-12);
+  const key = `calendly:${env.CALENDLY_ORGANIZATION_URI}:${range.from}:${range.to}:ignored:${namesDigest}`;
   return getCached(key, CACHE_TTL.calendly, () => fetchEvents(range));
 }

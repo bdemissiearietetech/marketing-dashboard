@@ -47,6 +47,7 @@ export async function FunnelSection({ range }: FunnelSectionProps) {
               count={s.count}
               convFromPrev={s.convFromPrev}
               convFromTop={s.convFromTop}
+              convFromTopLabel={s.convFromTopLabel}
               locale={locale}
               isFirst={i === 0}
               borderClass={STAGE_BORDER[s.key]}
@@ -69,6 +70,7 @@ export async function FunnelSection({ range }: FunnelSectionProps) {
 interface StageWithRates extends FunnelStage {
   convFromPrev: number | null;
   convFromTop: number | null;
+  convFromTopLabel: string;
 }
 
 // Sequential ramp: cool (slate) at the top of funnel → warm (amber) → emerald at the bottom.
@@ -84,17 +86,21 @@ const STAGE_BORDER: Record<FunnelStage["key"], string> = {
 
 function computeRates(stages: FunnelStage[]): StageWithRates[] {
   const top = stages[0]?.count ?? null;
+  const booked = stages.find((s) => s.key === "booked")?.count ?? null;
   return stages.map((s, i) => {
     const prev = i > 0 ? stages[i - 1].count : null;
     const convFromPrev =
       s.count !== null && prev !== null && prev > 0 ? s.count / prev : null;
+    // attended is compared against booked, not top of funnel
+    const denominator = s.key === "attended" ? booked : top;
     const convFromTop =
       i === 0
         ? null
-        : s.count !== null && top !== null && top > 0
-          ? s.count / top
+        : s.count !== null && denominator !== null && denominator > 0
+          ? s.count / denominator
           : null;
-    return { ...s, convFromPrev, convFromTop };
+    const convFromTopLabel = s.key === "attended" ? "of booked" : "of top";
+    return { ...s, convFromPrev, convFromTop, convFromTopLabel };
   });
 }
 
@@ -103,6 +109,7 @@ interface StageProps {
   count: number | null;
   convFromPrev: number | null;
   convFromTop: number | null;
+  convFromTopLabel: string;
   locale: string;
   isFirst: boolean;
   borderClass: string;
@@ -113,6 +120,7 @@ function FunnelStageBlock({
   count,
   convFromPrev,
   convFromTop,
+  convFromTopLabel,
   locale,
   isFirst,
   borderClass,
@@ -136,7 +144,7 @@ function FunnelStageBlock({
         </div>
         {convFromTop !== null && (
           <div className="text-[10px] text-muted-foreground tabular-nums">
-            {formatPercent(convFromTop, locale, { digits: 1 })} of top
+            {formatPercent(convFromTop, locale, { digits: 1 })} {convFromTopLabel}
           </div>
         )}
       </div>

@@ -88,3 +88,8 @@ export const CALENDLY_IGNORED_EVENT_TYPE_NAMES: ReadonlyArray<string> = [
   "Ariete Capital x Vancis",
   "Meet with Dario Montagnese",
 ];
+
+export const KPI_THRESHOLDS = {
+  cplMax: 30,       // CPL above this → red alert
+  showRateMin: 0.4, // show-up rate below this → red alert
+} as const;

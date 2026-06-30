@@ -26,6 +26,10 @@ export const env = createEnv({
     // `text` + optional `image`). Optional — when unset, the API route returns 503.
     N8N_FEEDBACK_WEBHOOK_URL: z.string().url().optional(),
 
+    N8N_KPI_ALERT_WEBHOOK_URL: z.string().url().optional(),
+    CRON_SECRET: z.string().min(1).optional(),
+    ALERT_RECIPIENT_EMAILS: z.string().min(1).optional(),
+
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   },
   client: {},
@@ -42,6 +46,9 @@ export const env = createEnv({
     TARGET_CAC: process.env.TARGET_CAC,
     DASHBOARD_PASSWORD: process.env.DASHBOARD_PASSWORD,
     N8N_FEEDBACK_WEBHOOK_URL: process.env.N8N_FEEDBACK_WEBHOOK_URL,
+    N8N_KPI_ALERT_WEBHOOK_URL: process.env.N8N_KPI_ALERT_WEBHOOK_URL,
+    CRON_SECRET: process.env.CRON_SECRET,
+    ALERT_RECIPIENT_EMAILS: process.env.ALERT_RECIPIENT_EMAILS,
     NODE_ENV: process.env.NODE_ENV,
   },
   emptyStringAsUndefined: true,

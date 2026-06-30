@@ -25,7 +25,8 @@
   },
   "tabs": {
     "dashboard": "Dashboard",
-    "pipeline": "Pipeline"
+    "pipeline": "Pipeline",
+    "notifications": "Notifications"
   },
   "snapshot": {
     "leads": "Leads",

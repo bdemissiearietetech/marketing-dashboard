@@ -12,6 +12,7 @@ import { MetricsLegend } from "@/components/dashboard/MetricsLegend";
 import { BookedCallsSection } from "@/components/dashboard/BookedCallsSection";
 import { LeadsPhasesSection } from "@/components/dashboard/LeadsPhasesSection";
 import { ClientPhasesSection } from "@/components/dashboard/ClientPhasesSection";
+import { NotificationsSection } from "@/components/dashboard/NotificationsSection";
 import { parseRange } from "@/lib/date-range";
 
 interface DashboardPageProps {
@@ -29,6 +30,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         <TabsList>
           <TabsTrigger value="dashboard">{t("dashboard")}</TabsTrigger>
           <TabsTrigger value="pipeline">{t("pipeline")}</TabsTrigger>
+          <TabsTrigger value="notifications">{t("notifications")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard" className="space-y-6 mt-6">
@@ -68,6 +70,12 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
           <Suspense fallback={<SectionSkeleton />}>
             <ClientPhasesSection />
+          </Suspense>
+        </TabsContent>
+
+        <TabsContent value="notifications">
+          <Suspense fallback={<SectionSkeleton />}>
+            <NotificationsSection />
           </Suspense>
         </TabsContent>
       </Tabs>
